@@ -2,21 +2,13 @@ from typing import Union
 import numpy as np
 from numba import njit
 from jesse.helpers import get_candle_source, same_length, slice_candles
+from jesse.indicators.sma import sma
 
 
 @njit
-def _dpo(source, period):
+def _dpo(source, period, sma):
     # Calculate the X/2 + 1 shift
     shift = period // 2 + 1
-
-    # Calculate SMA using numpy's cumsum for better performance
-    sma = np.zeros_like(source)
-    temp = np.zeros(len(source) + 1)
-    temp[1:] = source
-    cumsum = np.zeros(len(source) + 1)
-    for i in range(1, len(cumsum)):
-        cumsum[i] = cumsum[i-1] + temp[i]
-    sma[period-1:] = (cumsum[period:] - cumsum[:-period]) / period
 
     # Shift the price series and subtract SMA
     shifted_source = np.roll(source, shift)
@@ -43,6 +35,7 @@ def dpo(candles: np.ndarray, period: int = 5, source_type: str = "close", sequen
     """
     candles = slice_candles(candles, sequential)
     source = get_candle_source(candles, source_type=source_type)
-    res = _dpo(source, period)
+    t_sma = sma(candles, period, source_type=source_type, sequential=True)
+    res = _dpo(source, period, t_sma)
 
     return same_length(candles, res) if sequential else res[-1]
