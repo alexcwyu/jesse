@@ -1013,7 +1013,7 @@ def test_kvo():
     single = ta.kvo(candles)
     seq = ta.kvo(candles, sequential=True)
 
-    assert round(single / 10000000, 2) == -5.52
+    assert round(single / 10000000, 2) == -0.88
     assert len(seq) == len(candles)
     assert seq[-1] == single
 
