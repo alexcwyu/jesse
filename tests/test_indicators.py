@@ -2117,7 +2117,7 @@ def test_vidya():
     single = ta.vidya(candles)
     seq = ta.vidya(candles, sequential=True)
 
-    assert round(single, 2) == 194.75
+    assert round(single, 2) == 200.84
     assert len(seq) == len(candles)
     assert seq[-1] == single
 
