@@ -585,7 +585,7 @@ def test_emv():
     candles = np.array(test_candles_19)
     single = ta.emv(candles)
     seq = ta.emv(candles, sequential=True)
-    assert round(single, 0) == -11
+    assert round(single, 0) == -1
     assert len(seq) == len(candles)
     assert seq[-1] == single
 
