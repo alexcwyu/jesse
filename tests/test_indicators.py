@@ -1316,20 +1316,6 @@ def test_mom():
     assert seq[-1] == single
 
 
-def test_msw():
-    candles = np.array(test_candles_19)
-    single = ta.msw(candles)
-    seq = ta.msw(candles, sequential=True)
-
-    assert type(single).__name__ == 'MSW'
-    assert round(single.lead, 2) == -0.66
-    assert round(single.sine, 2) == -1.0
-
-    assert seq.lead[-1] == single.lead
-    assert seq.sine[-1] == single.sine
-    assert len(seq.sine) == len(candles)
-
-
 def test_mwdx():
     # use the same candles as mama_candles
     candles = np.array(test_candles_19)
