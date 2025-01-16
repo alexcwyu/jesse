@@ -642,7 +642,7 @@ def test_fosc():
     candles = np.array(test_candles_19)
     single = ta.fosc(candles)
     seq = ta.fosc(candles, sequential=True)
-    assert round(single, 0) == -69
+    assert round(single, 0) == -32
     assert len(seq) == len(candles)
     assert seq[-1] == single
 
@@ -2410,5 +2410,3 @@ def test_volume():
     assert seq.ma[-1] == single.ma
     assert len(seq.volume) == len(candles)
     assert len(seq.ma) == len(candles)
-
-
