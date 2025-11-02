@@ -36,7 +36,6 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 # get the jesse directory
 JESSE_DIR = pkg_resources.resource_filename(__name__, '')
 
-
 # load homepage
 @fastapi_app.get("/")
 async def index():
@@ -227,6 +226,14 @@ def run() -> None:
         time.sleep(sleep_seconds)
         run_migrations()
 
+    # Install Python Language Server if needed
+    try:
+        from jesse.services.lsp import install_lsp_server
+        install_lsp_server()
+    except Exception as e:
+        print(jh.color(f"Error installing Python Language Server: {str(e)}", 'red'))
+        pass
+
     # read port from .env file, if not found, use default
     from jesse.services.env import ENV_VALUES
     if 'APP_PORT' in ENV_VALUES:
@@ -239,15 +246,27 @@ def run() -> None:
     else:
         host = "0.0.0.0"
 
+    # run the lsp server
+    try:
+        from jesse.services.lsp import run_lsp_server
+        run_lsp_server()
+    except Exception as e:
+        print(jh.color(f"Error running Python Language Server: {str(e)}", 'red'))
+        pass
+
     # run the main application
     process_manager.flush()
     uvicorn.run(fastapi_app, host=host, port=port, log_level="info")
 
 
+        
 @fastapi_app.on_event("shutdown")
 def shutdown_event():
     from jesse.services.db import database
     database.close_connection()
+    # terminate the lsp server
+    from jesse.services.lsp import terminate_lsp_server
+    terminate_lsp_server()
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # #
