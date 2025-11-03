@@ -170,10 +170,13 @@ def run_lsp_server():
 
     # Get the port from the .env file
     from jesse.services.env import ENV_VALUES
-    if not 'LSP_PORT' in ENV_VALUES:
-        raise Exception("LSP_PORT is not set in the .env file. Please set it to the port you want to use for the lsp web. You can set it by running: 'export LSP_PORT=9014' in your terminal.")
-    
-    port = int(ENV_VALUES['LSP_PORT'])
+    port = None
+    if 'LSP_PORT' in ENV_VALUES:
+        port = int(ENV_VALUES['LSP_PORT'])
+    else:
+        from jesse import LSP_DEFAULT_PORT
+        print(jh.color(f"LSP_PORT is not set in the .env file. Using default port {LSP_DEFAULT_PORT}", 'yellow'))
+        port = LSP_DEFAULT_PORT
         
     # Get the workspace root (Jesse Bot root) (e.g., /home/king/jesse/jesse-ai-jesse-bot)
     jesse_bot_root = os.getcwd()
