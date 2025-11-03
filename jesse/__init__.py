@@ -36,9 +36,6 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 # get the jesse directory
 JESSE_DIR = pkg_resources.resource_filename(__name__, '')
 
-#LSP DEFAULT PORT
-LSP_DEFAULT_PORT = 9001
-
 # load homepage
 @fastapi_app.get("/")
 async def index():

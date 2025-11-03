@@ -7,6 +7,9 @@ import zipfile
 import tempfile
 import jesse.helpers as jh
 
+#Global variable to store the LSP default port
+LSP_DEFAULT_PORT = 9001
+
 # Global variable to store/track the lsp process
 LSP_PROCESS = None
 
@@ -71,8 +74,7 @@ def install_lsp_server() -> None:
         try:
             package_name = __get_platform_package_name()
         except Exception as e:
-            print(jh.color(f"Cannot determine platform package: {str(e)}", 'red'))
-            return
+            raise Exception(f"Cannot determine platform package name: {str(e)}")
         
         print(f"Detected platform package: {package_name}")
         
@@ -91,8 +93,7 @@ def install_lsp_server() -> None:
                 break
         
         if not download_url:
-            print(jh.color(f"Package '{package_name}' not found in latest release", 'yellow'))
-            return
+            raise Exception(f"Package '{package_name}' not found in latest release")
         
         print(f"Downloading Python Language Server from {download_url}...")
         
@@ -142,9 +143,9 @@ def install_lsp_server() -> None:
             print(jh.color("✓ Python Language Server installed successfully", 'green'))
     
     except requests.RequestException as e:
-        print(jh.color(f"Failed to download LSP server: {str(e)}", 'red'))
+        raise Exception(f"Failed to download LSP server: {str(e)}")
     except Exception as e:
-        print(jh.color(f"Error installing LSP server: {str(e)}", 'red'))
+        raise Exception(f"Error installing LSP server: {str(e)}")
         
         
 def run_lsp_server():
@@ -174,7 +175,6 @@ def run_lsp_server():
     if 'LSP_PORT' in ENV_VALUES:
         port = int(ENV_VALUES['LSP_PORT'])
     else:
-        from jesse import LSP_DEFAULT_PORT
         print(jh.color(f"LSP_PORT is not set in the .env file. Using default port {LSP_DEFAULT_PORT}", 'yellow'))
         port = LSP_DEFAULT_PORT
         

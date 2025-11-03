@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
-from jesse import LSP_DEFAULT_PORT
+from jesse.services.lsp import LSP_DEFAULT_PORT
 
 router = APIRouter(prefix='/lsp-config', tags=['LSP Configuration'])
 
