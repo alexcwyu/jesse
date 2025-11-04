@@ -52,7 +52,14 @@ def install_lsp_server() -> None:
     from jesse import JESSE_DIR
     
     target_dir = os.path.join(JESSE_DIR, 'lsp')
-    start_script = os.path.join(target_dir, 'start.sh')
+    
+    #Define the start script based on the platform
+    start_script = None
+    if platform.system().lower() == 'windows':
+        start_script = os.path.join(target_dir, 'start.bat')
+    else:
+        start_script = os.path.join(target_dir, 'start.sh')
+    
     
     # Skip if already exists (optional - remove if you want to always re-download)
     if os.path.exists(target_dir):
@@ -161,7 +168,13 @@ def run_lsp_server():
     from jesse import JESSE_DIR
     lsp_dir = os.path.join(JESSE_DIR, 'lsp')
 
-    start_script = os.path.join(lsp_dir, 'start.sh')
+    #Define the start script based on the platform
+    start_script = None
+    if platform.system().lower() == 'windows':
+        start_script = os.path.join(lsp_dir, 'start.bat')
+    else:
+        start_script = os.path.join(lsp_dir, 'start.sh')
+    
 
     if not os.path.exists(lsp_dir):
         raise Exception("LSP directory not found. Please re-install it first by restarting the jesse.")
