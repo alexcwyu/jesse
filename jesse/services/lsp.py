@@ -205,17 +205,18 @@ def run_lsp_server():
     # Start the lsp process and return the handle
     try:
         import subprocess        
-        process = subprocess.Popen(
-            [
-                start_script,
-                '--port', str(port),
-                '--bot-root', jesse_bot_root,
-                '--jesse-root', jesse_framework_parent
-            ],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            shell=False  # since we are using array arguments, we need to set shell to False
-        )
+        with open(os.devnull, 'w') as devnull:
+            process = subprocess.Popen(
+                [
+                    start_script,
+                    '--port', str(port),
+                    '--bot-root', jesse_bot_root,
+                    '--jesse-root', jesse_framework_parent
+                ],
+                stdout=devnull,  # redirect stdout to devnull to suppress LSP output
+                stderr=devnull,  # redirect stderr to devnull to suppress LSP errors
+                shell=False  # since we are using array arguments, we need to set shell to False
+            )
         LSP_PROCESS = process
         # wait for 0.2 seconds to make sure the process is started
         import time
