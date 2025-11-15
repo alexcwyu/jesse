@@ -1,4 +1,4 @@
-import aioredis
+import redis.asyncio as aioredis
 import redis as sync_redis_lib
 import simplejson as json
 import asyncio
@@ -10,10 +10,12 @@ from jesse.services.env import ENV_VALUES
 
 
 async def init_redis():
-    return await aioredis.create_redis_pool(
-        address=(ENV_VALUES['REDIS_HOST'], ENV_VALUES['REDIS_PORT']),
+    return aioredis.Redis(
+        host=ENV_VALUES['REDIS_HOST'],
+        port=ENV_VALUES['REDIS_PORT'],
         password=ENV_VALUES['REDIS_PASSWORD'] or None,
         db=int(ENV_VALUES.get('REDIS_DB') or 0),
+        decode_responses=False
     )
 
 
