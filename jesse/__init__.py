@@ -2,6 +2,7 @@ import warnings
 from typing import Optional, Dict, Set
 import click
 import pkg_resources
+from jesse.version import __version__
 from fastapi import BackgroundTasks, Query, Header
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.responses import FileResponse

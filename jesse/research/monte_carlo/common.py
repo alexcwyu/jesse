@@ -1,5 +1,9 @@
 from typing import List, Dict, Any
-import ray
+try:
+    import ray
+    HAS_RAY = True
+except ImportError:
+    HAS_RAY = False
 import jesse.helpers as jh
 import jesse.services.logger as logger
 

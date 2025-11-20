@@ -2,7 +2,11 @@ from datetime import timedelta
 from multiprocessing import cpu_count
 from typing import Dict, List, Optional
 import os
-import ray
+try:
+    import ray
+    HAS_RAY = True
+except ImportError:
+    HAS_RAY = False
 import numpy as np
 import jesse.helpers as jh
 import jesse.services.logger as logger

@@ -4,7 +4,16 @@ import base64
 from datetime import timedelta
 from multiprocessing import cpu_count
 import optuna
-import ray
+try:
+    import ray
+    HAS_RAY = True
+except ImportError:
+    HAS_RAY = False
+    # Create a dummy decorator when ray is not available
+    class ray:
+        @staticmethod
+        def remote(func):
+            return func
 import numpy as np
 import jesse.helpers as jh
 import jesse.services.logger as logger

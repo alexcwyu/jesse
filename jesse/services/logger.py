@@ -169,14 +169,15 @@ def log_monte_carlo(message, session_id: str):
 
     # Check if we're in a Ray worker process
     # Workers should not create file loggers as they can't share the LOGGERS dict properly
-    import ray
     is_ray_worker = False
     try:
+        import ray
         if ray.is_initialized():
             runtime_ctx = ray.get_runtime_context()
             is_ray_worker = runtime_ctx.worker.mode == ray.WORKER_MODE
-    except Exception as e:
-        print(f"Error checking Ray worker status: {e}")
+    except (ImportError, Exception) as e:
+        # Ray not available or error checking status
+        pass
 
     # Only create file logger from main process (not workers)
     if not is_ray_worker:
