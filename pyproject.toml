@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "jesse"
-version = "1.11.0"
+version = "1.12.0"
 description = "A trading framework for cryptocurrencies"
 readme = "README.md"
 requires-python = "==3.13.*"
@@ -55,6 +55,7 @@ dependencies = [
     "msgpack>=1.1.0",
     "starkbank-ecdsa>=1.1.0",
     "jesse-rust==1.0.1",
+    "aioredis>=1.3.1",
 ]
 
 [project.optional-dependencies]
@@ -80,7 +81,6 @@ include = [
     "jesse/**",
     "README.md",
     "LICENSE",
-    "requirements.txt",
 ]
 exclude = [
     "tests/**",
