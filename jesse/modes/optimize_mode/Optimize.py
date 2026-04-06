@@ -42,7 +42,8 @@ def ray_evaluate_trial(
     testing_candles,
     optimal_total,
     fast_mode,
-    trial_number
+    trial_number,
+    session_id
 ):
     """Ray remote function to evaluate a trial"""
     try:
@@ -58,12 +59,13 @@ def ray_evaluate_trial(
             testing_warmup_candles,
             testing_candles,
             optimal_total,
-            fast_mode
+            fast_mode,
+            session_id
         )
 
         # Log the trial details if debugging is enabled
         if jh.is_debugging():
-            logger.log_optimize_mode(f"Ray Trial {trial_number}: Score={score}, Params={hp}")
+            logger.log_optimize_mode(f"Ray Trial {trial_number}: Score={score}, Params={hp}", session_id )
 
         return {
             'trial_number': trial_number,
@@ -75,12 +77,12 @@ def ray_evaluate_trial(
     except exceptions.RouteNotFound as e:
         # Convert RouteNotFound to a standard RuntimeError to avoid serialization issues
         error_msg = str(e)
-        logger.log_optimize_mode(f"Ray Trial {trial_number} failed with RouteNotFound: {error_msg}")
-        logger.log_optimize_mode(f"Trial {trial_number} hyperparameters: {hp}")
+        logger.log_optimize_mode(f"Ray Trial {trial_number} failed with RouteNotFound: {error_msg}", session_id )
+        logger.log_optimize_mode(f"Trial {trial_number} hyperparameters: {hp}", session_id )
         raise RuntimeError(f"RouteNotFound: {error_msg}")
     except Exception as e:
         # Log and re-raise other exceptions
-        logger.log_optimize_mode(f"Ray Trial {trial_number} failed with exception: {str(e)}")
+        logger.log_optimize_mode(f"Ray Trial {trial_number} failed with exception: {str(e)}", session_id )
         raise
 
 # Optimizer class that uses Ray for hyperparameter optimization
@@ -166,9 +168,9 @@ class Optimizer:
         if not ray.is_initialized():
             try:
                 ray.init(num_cpus=self.cpu_cores, ignore_reinit_error=True)
-                logger.log_optimize_mode(f"Successfully started optimization session with {self.cpu_cores} CPU cores")
+                logger.log_optimize_mode(f"Successfully started optimization session with {self.cpu_cores} CPU cores", self.session_id )
             except Exception as e:
-                logger.log_optimize_mode(f"Error initializing Ray: {e}. Falling back to 1 CPU.")
+                logger.log_optimize_mode(f"Error initializing Ray: {e}. Falling back to 1 CPU.", self.session_id )
                 self.cpu_cores = 1
                 ray.init(num_cpus=1, ignore_reinit_error=True)
 
@@ -205,12 +207,12 @@ class Optimizer:
             # Get completed trials from the Optuna study
             completed_trials = session_data.completed_trials
             if not completed_trials:
-                logger.log_optimize_mode("No previous trials found. Starting new optimization session.")
+                logger.log_optimize_mode("No previous trials found. Starting new optimization session.", self.session_id )
                 return
 
             # Update completed trials count
             self.completed_trials = completed_trials
-            logger.log_optimize_mode(f"Loaded {self.completed_trials} completed trials from previous session")
+            logger.log_optimize_mode(f"Loaded {self.completed_trials} completed trials from previous session", self.session_id )
             self.best_trials = replace_inf_with_null(json.loads(session_data.best_trials))
             # Update best candidates display
             self._update_best_candidates()
@@ -232,7 +234,7 @@ class Optimizer:
             )
 
         except Exception as e:
-            logger.log_optimize_mode(f"Error loading previous trials: {e}")
+            logger.log_optimize_mode(f"Error loading previous trials: {e}", self.session_id )
             # Reset counters in case of failure
             self.completed_trials = 0
             self.trial_counter = 0
@@ -328,7 +330,7 @@ class Optimizer:
             return True
 
         except Exception as e:
-            logger.log_optimize_mode(f"Error creating Optuna trial: {e}")
+            logger.log_optimize_mode(f"Error creating Optuna trial: {e}", self.session_id )
             return False
 
     def _process_trial_result(self, result):
@@ -390,6 +392,9 @@ class Optimizer:
                 jh.debug(f"Trial {trial_number} has training metrics: {bool(training_metrics)}")
                 jh.debug(f"Trial {trial_number} has testing metrics: {bool(testing_metrics)}")
 
+            # Get best candidates count from config
+            best_candidates_count = jh.get_config('env.optimization.best_candidates_count', 20)
+
             # Insert into best_trials maintaining sorted order
             insert_idx = 0
             for idx, t in enumerate(self.best_trials):
@@ -399,10 +404,10 @@ class Optimizer:
                 else:
                     insert_idx = idx + 1
 
-            if insert_idx < 20 or len(self.best_trials) < 20:
+            if insert_idx < best_candidates_count or len(self.best_trials) < best_candidates_count:
                 self.best_trials.insert(insert_idx, current_trial_info)
-                # Keep only top 20
-                self.best_trials = self.best_trials[:20]
+                # Keep only top candidates as configured
+                self.best_trials = self.best_trials[:best_candidates_count]
 
             # Update best candidates table
             self._update_best_candidates()
@@ -506,10 +511,10 @@ class Optimizer:
 
     def run(self) -> optuna.trial.FrozenTrial:
         # Log the start of the optimization session
-        logger.log_optimize_mode(f"Optimization session started with {self.cpu_cores} CPU cores")
+        logger.log_optimize_mode(f"Optimization session started with {self.cpu_cores} CPU cores", self.session_id )
 
         if self.completed_trials > 0:
-            logger.log_optimize_mode(f"Resuming from previous session with {self.completed_trials} trials already completed")
+            logger.log_optimize_mode(f"Resuming from previous session with {self.completed_trials} trials already completed", self.session_id )
             # Make sure the progress bar is synchronized
             self._set_progressbar_index(self.completed_trials)
 
@@ -518,7 +523,7 @@ class Optimizer:
             best_trial_value = self.study.best_value if self.study.trials else 0.0
             best_trial_params = self.study.best_params if self.study.trials else None
         except (ValueError, AttributeError) as e:
-            logger.log_optimize_mode(f"Could not access best trial: {e}. Using default values.")
+            logger.log_optimize_mode(f"Could not access best trial: {e}. Using default values.", self.session_id )
             best_trial_value = 0.0
             best_trial_params = None
 
@@ -556,7 +561,8 @@ class Optimizer:
                         self.testing_candles,
                         self.optimal_total,
                         self.fast_mode,
-                        self.trial_counter
+                        self.trial_counter,
+                        self.session_id
                     )
 
                     # Store the reference
@@ -604,7 +610,7 @@ class Optimizer:
             try:
                 best_trial = self.study.best_trial
             except (ValueError, AttributeError) as e:
-                logger.log_optimize_mode(f"Could not access best trial at the end: {e}")
+                logger.log_optimize_mode(f"Could not access best trial at the end: {e}", self.session_id )
                 # Create a dummy trial if no best trial exists
                 best_trial = None
 
@@ -628,12 +634,12 @@ class Optimizer:
 
         except exceptions.Termination:
             # Handle user-initiated termination
-            logger.log_optimize_mode("Optimization terminated by user")
+            logger.log_optimize_mode("Optimization terminated by user", self.session_id )
             # Update session status to 'stopped'
             update_optimization_session_status(self.session_id, 'stopped')
             raise
         except Exception as e:
-            logger.log_optimize_mode(f"Error during optimization: {e}")
+            logger.log_optimize_mode(f"Error during optimization: {e}", self.session_id )
             # Update session status to 'stopped' due to error
             update_optimization_session_status(self.session_id, 'stopped')
             from jesse.models.OptimizationSession import add_session_exception
@@ -645,7 +651,7 @@ class Optimizer:
 
         # Create an empty FrozenTrial if best_trial is None
         if best_trial is None:
-            logger.log_optimize_mode("No best trial found. Returning empty result.")
+            logger.log_optimize_mode("No best trial found. Returning empty result.", self.session_id )
             from optuna.trial import FrozenTrial
             return FrozenTrial(
                 number=0,
