@@ -56,14 +56,18 @@ dependencies = [
     "starkbank-ecdsa>=1.1.0",
     "jesse-rust==1.0.1",
     "aioredis>=1.3.1",
-    "setuptools>=80.9.0",
     "ray>=2.51.1",
+    "joblib>=1.4.0",
+    "scikit-learn>=1.6.0",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
-    "pytest>=6.2.5",
+    "pytest>=9.0",
 ]
+
+[tool.uv]
+default-groups = ["dev"]
 
 [project.urls]
 Homepage = "https://jesse.trade"
@@ -76,11 +80,11 @@ Discord = "https://jesse.trade/discord"
 jesse = "jesse:cli"
 
 [tool.hatch.build.targets.wheel]
-packages = ["jesse"]
+packages = ["src/jesse"]
 
 [tool.hatch.build.targets.sdist]
 include = [
-    "jesse/**",
+    "src/jesse/**",
     "README.md",
     "LICENSE",
 ]
@@ -91,9 +95,40 @@ exclude = [
 
 [tool.hatch.build]
 include = [
-    "jesse/**/*.dll",
-    "jesse/**/*.dylib",
-    "jesse/**/*.so",
-    "jesse/**/*.json",
+    "src/jesse/**/*.dll",
+    "src/jesse/**/*.dylib",
+    "src/jesse/**/*.so",
+    "src/jesse/**/*.json",
 ]
+
+[tool.hatch.version]
+path = "src/jesse/version.py"
+
+[tool.ruff]
+line-length = 88
+target-version = "py313"
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "UP", "B", "SIM", "C4", "RUF", "PERF", "TC", "PTH"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]
+"__init__.py" = ["F401"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["jesse"]
+
+[tool.pyright]
+pythonVersion = "3.13"
+typeCheckingMode = "basic"
+
+[tool.pytest.ini_options]
+minversion = "9.0"
+addopts = ["-ra", "-q", "--strict-markers", "--import-mode=importlib"]
+testpaths = ["tests"]
+pythonpath = ["src"]
+xfail_strict = true
+filterwarnings = ["error"]
 

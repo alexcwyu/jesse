@@ -139,7 +139,7 @@ Jesse follows a **strategy-centric, event-driven architecture** with centralized
 
 ### Core Components
 
-**1. Strategy Layer** (`jesse/strategies/Strategy.py` - 1485 lines)
+**1. Strategy Layer** (`jesse/strategies/Strategy.py` - 1752 lines)
 - Base class for all trading strategies
 - **Lifecycle hooks**:
   - `should_long()` / `should_short()` - Entry signal evaluation
@@ -468,7 +468,7 @@ jesse/
 ├── store/                   # State management
 │   └── __init__.py          # Global store with state managers
 └── strategies/              # User strategies + test strategies
-    ├── Strategy.py          # Base strategy class (1485 lines)
+    ├── Strategy.py          # Base strategy class (1752 lines)
     ├── Test01/              # Test strategies (137+)
     ├── Test02/
     └── ...
