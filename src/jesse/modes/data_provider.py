@@ -85,6 +85,48 @@ def get_candles(exchange: str, symbol: str, timeframe: str):
     ]
 
 
+_SETTINGS_SECTIONS = ('backtest', 'live', 'optimization')
+
+
+def normalize_settings_sections(data: dict) -> dict:
+    """
+    Make a settings/config dict safe to index, so /config/get can never 500 on a
+    malformed or partially-stored config. Pure (no I/O) and idempotent, which keeps
+    it unit-testable in isolation.
+
+    Tolerates two failure modes seen in the wild:
+
+    1. Double-wrap. The /config/get response wraps the config under a top-level
+       "data" key; if that response is ever fed back into /config/update, the real
+       sections get nested under a stray "data" key (stored as {"data": {...}}).
+       We unwrap that — but ONLY when the real sections are absent at the top level,
+       so a legitimate config is never disturbed.
+    2. Missing / non-dict sections. A first-write or partial config may lack
+       'backtest' / 'live' / 'optimization' (or have them set to null). We coerce
+       each to a dict and guarantee the 'exchanges' maps that callers index into.
+
+    Returns the normalized dict (the unwrapped inner dict when applicable).
+    """
+    if not isinstance(data, dict):
+        return {s: ({'exchanges': {}} if s in ('backtest', 'live') else {}) for s in _SETTINGS_SECTIONS}
+
+    # Unwrap a stray 'data' wrapper only when none of the real sections live at the
+    # top level but they do live one layer down. This guard means a valid config
+    # (which always has 'backtest' at the top) is never unwrapped.
+    if not any(s in data for s in _SETTINGS_SECTIONS) and isinstance(data.get('data'), dict):
+        inner = data['data']
+        if any(s in inner for s in _SETTINGS_SECTIONS):
+            data = inner
+
+    for section in _SETTINGS_SECTIONS:
+        if not isinstance(data.get(section), dict):
+            data[section] = {}
+    data['backtest'].setdefault('exchanges', {})
+    data['live'].setdefault('exchanges', {})
+
+    return data
+
+
 def get_config(client_config: dict, has_live=False) -> dict:
     from jesse.services.db import database
     database.open_connection()
@@ -97,6 +139,11 @@ def get_config(client_config: dict, has_live=False) -> dict:
         # merge it with client's config (because it could include new keys added),
         # update it in the database, and then return it
         data = jh.merge_dicts(client_config, json.loads(o.json))
+
+        # Defensive: tolerate a malformed or partial stored config so /config/get can
+        # never 500 (e.g. a double-wrapped config from a get->update round-trip, or a
+        # config missing the sections indexed just below). See normalize_settings_sections.
+        data = normalize_settings_sections(data)
 
         # make sure the list of BACKTEST exchanges is up to date
         for k in list(data['backtest']['exchanges'].keys()):
@@ -140,7 +187,17 @@ def update_config(client_config: dict):
     # at this point there must already be one option record for "config" existing, so:
     o = Option.get(Option.type == 'config')
 
-    o.json = json.dumps(client_config)
+    # Recursive-merge the client payload onto the stored config rather than
+    # replacing wholesale. client_config wins on leaf conflicts, but any keys
+    # it omits are preserved — a partial payload (e.g. one section) no longer
+    # wipes unrelated sections. The dashboard always sends the full settings
+    # object so its behavior is unchanged; partial-payload callers like the
+    # MCP server (or any future scripted client) can update a single section
+    # without nuking the rest of the config.
+    existing = json.loads(o.json) if o.json else {}
+    merged = jh.merge_dicts(existing, client_config)
+
+    o.json = json.dumps(merged)
     o.updated_at = jh.now(True)
 
     o.save()
@@ -165,9 +222,8 @@ def download_file(mode: str, file_type: str, session_id: str = None):
         path = f'storage/trading-view-pine-editor/{session_id}.txt'
         filename = f'backtest-{session_id}.txt'
     elif mode == 'optimize' and file_type == 'log':
-        path = f'storage/logs/optimize-mode.txt'
-        # filename should be "optimize-" + current timestamp
-        filename = f'optimize-{jh.timestamp_to_date(jh.now(True))}.txt'
+        path = f'storage/logs/optimize-mode/{session_id}.txt'
+        filename = f'optimize-{session_id}.txt'
     elif mode == 'monte-carlo' and file_type == 'log':
         path = f'storage/logs/monte-carlo-mode/{session_id}.txt'
         filename = f'monte-carlo-{session_id}.txt'
@@ -321,6 +377,119 @@ def import_api_keys_from_csv(content: str) -> Dict[str, any]:
         return {'success': False, 'error': str(e)}
 
 
+def download_notification_api_keys():
+    try:
+        database.open_connection()
+
+        from jesse.models.NotificationApiKeys import NotificationApiKeys
+        api_keys = list(NotificationApiKeys.select())
+        if not api_keys:
+            database.close_connection()
+            return StreamingResponse(
+                io.StringIO("No notification API keys found"),
+                media_type='text/csv',
+                headers={'Content-Disposition': 'attachment; filename=notification-api-keys.csv'}
+            )
+
+        output = io.StringIO()
+        writer = csv.writer(output)
+        headers = ['Name', 'Driver', 'bot_token', 'chat_id', 'webhook']
+        writer.writerow(headers)
+
+        for api_key in api_keys:
+            fields = json.loads(api_key.fields)
+            row = [
+                api_key.name,
+                api_key.driver,
+                fields.get('bot_token', ''),
+                fields.get('chat_id', ''),
+                fields.get('webhook', ''),
+            ]
+            writer.writerow(row)
+
+        database.close_connection()
+        output.seek(0)
+        return StreamingResponse(
+            output,
+            media_type='text/csv',
+            headers={'Content-Disposition': 'attachment; filename=notification-api-keys.csv'}
+        )
+    except Exception as e:
+        database.close_connection()
+        raise e
+
+
+def validate_notification_csv_content(content: str) -> bool:
+    try:
+        sql_patterns = [
+            ';--', '/*', '*/', 'xp_', 'sp_',
+            'union ', 'select ', 'insert ', 'update ',
+            'delete ', 'drop ', 'alter ', 'create '
+        ]
+        if any(p.lower() in content.lower() for p in sql_patterns):
+            return False
+        if any(c in content for c in ['\0', '\x01', '\x1a']):
+            return False
+
+        reader = csv.DictReader(io.StringIO(content))
+        required_columns = {'Name', 'Driver'}
+        header_set = {h.strip().lower() for h in reader.fieldnames or []}
+        if not all(col.lower() in header_set for col in required_columns):
+            return False
+        return True
+    except Exception:
+        return False
+
+
+def import_notification_api_keys_from_csv(content: str) -> Dict[str, any]:
+    from jesse.models.NotificationApiKeys import NotificationApiKeys
+    from jesse.services.db import database
+
+    try:
+        database.open_connection()
+        reader = csv.DictReader(io.StringIO(content))
+        imported_names: list[str] = []
+
+        existing_names = {k.name for k in NotificationApiKeys.select(NotificationApiKeys.name)}
+
+        for row in reader:
+            name = (row.get('Name') or '').strip()
+            if not name or name in existing_names:
+                continue
+
+            driver = (row.get('Driver') or '').strip().lower()
+            if driver not in ('telegram', 'discord', 'slack'):
+                continue
+
+            fields = {}
+            if driver == 'telegram':
+                bot_token = (row.get('bot_token') or '').strip()
+                chat_id = (row.get('chat_id') or '').strip()
+                if not bot_token or not chat_id:
+                    continue
+                fields = {'bot_token': bot_token, 'chat_id': chat_id}
+            else:
+                webhook = (row.get('webhook') or '').strip()
+                if not webhook:
+                    continue
+                fields = {'webhook': webhook}
+
+            NotificationApiKeys.create(
+                id=jh.generate_unique_id(),
+                name=name,
+                driver=driver,
+                fields=json.dumps(fields),
+                created_at=jh.now_to_datetime(),
+            )
+            imported_names.append(name)
+
+        database.close_connection()
+        return {'success': True, 'imported_count': len(imported_names)}
+    except Exception as e:
+        database.close_connection()
+        return {'success': False, 'error': str(e)}
+
+
 def get_backtest_logs(session_id: str):
     path = f"storage/logs/backtest-mode/{session_id}.txt"
 
@@ -370,3 +539,21 @@ def download_backtest_log(session_id: str):
         filename=filename,
         media_type='text/plain'
     )
+
+
+def download_live_log(session_id: str):
+    """
+    Returns the log file for a specific live session as a downloadable file
+    """
+    path = f'storage/logs/live-mode/{session_id}.txt'
+
+    if not os.path.exists(path):
+        raise Exception('Log file not found')
+
+    filename = f'live-{session_id}.txt'
+    return FileResponse(
+        path=path,
+        filename=filename,
+        media_type='text/plain'
+    )
+

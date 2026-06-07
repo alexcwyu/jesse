@@ -1,3 +1,4 @@
+import os
 import time
 import re
 from typing import Dict, List, Tuple, Optional
@@ -43,7 +44,8 @@ def run(
         csv: bool = False,
         json: bool = False,
         fast_mode: bool = False,
-        benchmark: bool = False
+        benchmark: bool = False,
+        theme: str = 'light'
 ) -> None:
     if not jh.is_unit_testing():
         # at every second, we check to see if it's time to execute stuff
@@ -66,7 +68,7 @@ def run(
 
     _execute_backtest(
         client_id, debug_mode, user_config, exchange, routes, data_routes, start_date, finish_date, candles, chart,
-        tradingview, csv, json, fast_mode, benchmark
+        tradingview, csv, json, fast_mode, benchmark, theme
     )
 
 
@@ -85,7 +87,8 @@ def _execute_backtest(
         csv: bool = False,
         json: bool = False,
         fast_mode: bool = False,
-        benchmark: bool = False
+        benchmark: bool = False,
+        theme: str = 'light'
 ):
     """
     Executes the backtest that has been initiated from within the dashboard. The purpose of extracting these
@@ -102,7 +105,7 @@ def _execute_backtest(
         r['exchange'] = exchange
     for r in data_routes:
         r['exchange'] = exchange
-    
+
     # set routes
     router.initiate(routes, data_routes)
     # reset store
@@ -137,9 +140,9 @@ def _execute_backtest(
             )
             _handle_warmup_candles(warmup_candles, start_date)
         except exceptions.CandlesNotFound as e:
-            _handle_sync_no_candles(e, start_date, exchange)
+            _handle_sync_no_candles(e, start_date, exchange, client_id=client_id, finish_date=finish_date)
         except exceptions.CandleNotFoundInDatabase as e:
-            _handle_sync_no_candles(e, start_date, exchange)
+            _handle_sync_no_candles(e, start_date, exchange, client_id=client_id, finish_date=finish_date)
 
     if not jh.should_execute_silently():
         sync_publish('general_info', {
@@ -161,7 +164,6 @@ def _execute_backtest(
             generate_tradingview=tradingview,
             generate_csv=csv,
             generate_json=json,
-            generate_equity_curve=True,
             benchmark=benchmark,
             generate_hyperparameters=True,
             fast_mode=fast_mode,
@@ -188,7 +190,7 @@ def _execute_backtest(
             # retry the backtest simulation
             _execute_backtest(
                 client_id, debug_mode, user_config, exchange, routes, data_routes, start_date, finish_date, candles,
-                chart, tradingview, csv, json, fast_mode, benchmark
+                chart, tradingview, csv, json, fast_mode, benchmark, theme
             )
             return
         else:
@@ -209,8 +211,20 @@ def _execute_backtest(
         })
         sync_publish('hyperparameters', result['hyperparameters'])
         sync_publish('metrics', result['metrics'])
-        sync_publish('equity_curve', result['equity_curve'], compression=True)
         sync_publish('trades', result['trades'], compression=True)
+
+        # Generate six analytical chart images (equity_curve, drawdown, underwater,
+        # monthly_heatmap, monthly_distribution, trade_pnl).
+        # Must be called BEFORE store.reset() since it reads from the live store.
+        _charts_folder = os.path.abspath('storage/backtest-charts')
+        charts._plot_backtest_charts(
+            session_id=client_id,
+            charts_folder=_charts_folder,
+            theme=theme,
+            benchmark=benchmark,
+        )
+        # Notify the frontend that all six images are ready.
+        sync_publish('charts_image_ready', {'session_id': client_id})
         
         # Prepare chart data if requested (call formatting functions once and cache)
         chart_data = None
@@ -227,7 +241,6 @@ def _execute_backtest(
         
         # Capture strategy codes for each route
         strategy_codes = {}
-        import os
         for r in router.routes:
             key = f"{r.exchange}-{r.symbol}"
             if key not in strategy_codes:
@@ -246,7 +259,6 @@ def _execute_backtest(
         update_backtest_session_results(
             id=client_id,
             metrics=result.get('metrics'),
-            equity_curve=result.get('equity_curve'),
             trades=result.get('trades'),
             hyperparameters=result.get('hyperparameters'),
             chart_data=chart_data,
@@ -260,32 +272,63 @@ def _execute_backtest(
     database.close_connection()
     
 
-def _handle_sync_no_candles(e, start_date, exchange):
-    # Extract symbol and exchange from error message
-    match = re.search(r"for (.*?) on (.*?)$", str(e))
-    if match:
-        symbol = match.group(1)
-        message = f'Missing trading candles for {symbol} on {exchange} from {start_date}'
+def _handle_sync_no_candles(e, start_date, exchange, client_id=None, finish_date=None):
+    # Prefer the structured payload the missing-candle helpers raise; only fall back
+    # to parsing the message string if the symbol isn't carried on the exception.
+    symbol = None
+    payload = e.args[0] if getattr(e, 'args', None) else None
+    if isinstance(payload, dict):
+        symbol = payload.get('symbol')
+    if not symbol:
+        match = re.search(r"for (.*?) on (.*?)$", str(e))
+        if match:
+            symbol = match.group(1)
+
+    if symbol:
+        # Compute the earliest date the run actually needs (warm-up candles included)
+        # so the error tells the agent/user exactly what to import to fix it.
         warmup_num = jh.get_config('env.data.warmup_candles_num', 210)
+        required_start = start_date
         if warmup_num > 0:
-            start_date = jh.date_to_timestamp(start_date) - (
+            required_start_ts = jh.date_to_timestamp(start_date) - (
                 warmup_num * jh.timeframe_to_one_minutes(jh.max_timeframe(config['app']['considering_timeframes'])) * 2 * 60_000)
-            start_date = jh.timestamp_to_date(start_date)
+            required_start = jh.timestamp_to_date(required_start_ts)
+
+        message = (
+            f"Missing candles for {symbol} on {exchange}. This run needs data from "
+            f"{required_start}" + (f" to {finish_date}" if finish_date else "") +
+            f" (which includes {warmup_num} warm-up candles before the start date). "
+            f"Import candles for {symbol} on {exchange} starting {required_start}, then re-run."
+        )
+
         sync_publish(
             "missing_candles",
             {
                 "message": message,
                 "symbol": symbol,
                 "exchange": exchange,
-                "start_date": start_date,
+                "start_date": required_start,
             },
         )
-        
+
+        # Persist a terminal error on the session so MCP/dashboard callers stop polling
+        # a session that would otherwise stay "running" forever. Previously the
+        # candle-shortage path raised without ever marking the session stopped, which
+        # surfaced to API clients as a silent hang.
+        if client_id is not None and not jh.should_execute_silently():
+            from jesse.models.BacktestSession import (
+                store_backtest_session_exception,
+                update_backtest_session_status,
+            )
+            store_backtest_session_exception(client_id, message, '')
+            update_backtest_session_status(client_id, 'stopped')
+
         raise exceptions.CandlesNotFound({
-            'message': str(e),
+            'message': message,
             'symbol': symbol,
             'exchange': exchange,
-            'start_date': start_date,
+            'start_date': required_start,
+            'finish_date': finish_date,
             'type': 'missing_candles'
         })
     raise e
@@ -540,6 +583,13 @@ def _step_simulator(
             if i != 0:
                 previous_short_candle = candles[j]['candles'][i - 1]
                 short_candle = _get_fixed_jumped_candle(previous_short_candle, short_candle)
+            # Persist the synthetic candle back into the array so the higher-timeframe
+            # generation below (and the next iteration's gap-fix reference) are built from the
+            # SYNTHETIC series — exactly as _skip_simulator does. Without this, larger-timeframe
+            # candles (and therefore the strategy's indicators) were generated from the ORIGINAL
+            # real candles while fills ran on the synthetic prices, so the full (step) simulator
+            # diverged from the fast (skip) simulator on bootstrapped candles — and could blow up.
+            candles[j]['candles'][i] = short_candle
             exchange = candles[j]['exchange']
             symbol = candles[j]['symbol']
 
@@ -684,16 +734,20 @@ def _prepare_routes(
         r.strategy.symbol = r.symbol
         r.strategy.timeframe = r.timeframe
 
-        # read the dna from strategy's dna() and use it for injecting inject hyperparameters
-        # first convert DNS string into hyperparameters
-        if len(r.strategy.dna()) > 0 and hyperparameters is None:
-            hyperparameters = jh.dna_to_hp(
+        # Determine hyperparameters for this specific route.
+        # External hyperparameters (passed from optimize mode) take priority;
+        # otherwise fall back to the route's own DNA string.
+        # A per-route local variable is used so the loop never leaks one
+        # strategy's decoded HP into the next strategy.
+        route_hp = hyperparameters
+        if route_hp is None and len(r.strategy.dna()) > 0:
+            route_hp = jh.dna_to_hp(
                 r.strategy.hyperparameters(), r.strategy.dna()
             )
 
         # inject hyperparameters sent within the optimize mode
-        if hyperparameters is not None:
-            r.strategy.hp = hyperparameters
+        if route_hp is not None:
+            r.strategy.hp = route_hp
 
         # init few objects that couldn't be initiated in Strategy __init__
         # it also injects hyperparameters into self.hp in case the route does not uses any DNAs
