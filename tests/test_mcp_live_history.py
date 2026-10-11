@@ -312,7 +312,7 @@ def test_order_dashboard_and_mcp_share_selection_without_changing_search_contrac
 def test_shared_queries_and_hydration_leave_caller_transaction_intact(api, db):
     """Repository builders neither execute/rollback nor change ownership of the snapshot."""
     session = _session()
-    with db.atomic():
+    with db.atomic() as transaction:
         trade_id = _trade(session, START_MS)
         depth = db.transaction_depth()
         selection = closed_trade_repository.history_query(session_id=session, time_field='closed_at',
@@ -326,7 +326,7 @@ def test_shared_queries_and_hydration_leave_caller_transaction_intact(api, db):
         assert len(trade.buy_orders) == 1 and len(trade.sell_orders) == 1
         assert order_repository.history_query(session_id=session).count() == 2
         assert db.transaction_depth() == depth
-        db.rollback()
+        transaction.rollback()
     assert ClosedTrade.select().where(ClosedTrade.id == trade_id).count() == 0
 
 

@@ -1,0 +1,527 @@
+{
+  "repo": "jesse",
+  "checks": [
+    {
+      "command": [
+        "uv",
+        "lock",
+        "--upgrade",
+        "--python",
+        "3.15"
+      ],
+      "label": "lock-3.15",
+      "exit_code": 0,
+      "seconds": 0.78,
+      "log": "jesse-lock-3.15.log"
+    },
+    {
+      "command": [
+        "uv",
+        "sync",
+        "--all-extras",
+        "--python",
+        "3.15"
+      ],
+      "label": "sync-3.15",
+      "exit_code": 2,
+      "seconds": 0.04,
+      "log": "jesse-sync-3.15.log"
+    },
+    {
+      "command": [
+        "uv",
+        "lock",
+        "--upgrade",
+        "--python",
+        "3.14"
+      ],
+      "label": "lock-3.14",
+      "exit_code": 0,
+      "seconds": 0.34,
+      "log": "jesse-lock-3.14.log"
+    },
+    {
+      "command": [
+        "uv",
+        "sync",
+        "--all-extras",
+        "--python",
+        "3.14"
+      ],
+      "label": "sync-3.14",
+      "exit_code": 1,
+      "seconds": 34.34,
+      "log": "jesse-sync-3.14.log"
+    },
+    {
+      "command": [
+        "uv",
+        "lock",
+        "--upgrade",
+        "--python",
+        "3.13"
+      ],
+      "label": "lock-3.13",
+      "exit_code": 0,
+      "seconds": 0.74,
+      "log": "jesse-lock-3.13.log"
+    },
+    {
+      "command": [
+        "uv",
+        "sync",
+        "--all-extras",
+        "--python",
+        "3.13"
+      ],
+      "label": "sync-3.13",
+      "exit_code": 0,
+      "seconds": 4.89,
+      "log": "jesse-sync-3.13.log"
+    },
+    {
+      "command": [
+        "uv",
+        "build",
+        "--python",
+        "3.13"
+      ],
+      "label": "build",
+      "exit_code": 0,
+      "seconds": 21.84,
+      "log": "jesse-build.log"
+    },
+    {
+      "command": [
+        "/Users/alex/workspaces/trading/jesse/.venv/bin/python",
+        "-m",
+        "compileall",
+        "-q",
+        "src"
+      ],
+      "label": "compile",
+      "exit_code": 0,
+      "seconds": 0.82,
+      "log": "jesse-compile.log"
+    },
+    {
+      "command": [
+        "/Users/alex/workspaces/trading/jesse/.venv/bin/python",
+        "-m",
+        "pytest",
+        "tests"
+      ],
+      "label": "tests",
+      "exit_code": 2,
+      "seconds": 21.28,
+      "log": "jesse-tests.log"
+    },
+    {
+      "command": [
+        "uv",
+        "sync",
+        "--all-extras",
+        "--python",
+        "3.13"
+      ],
+      "label": "compatible-sync",
+      "exit_code": 0,
+      "seconds": 1.26,
+      "log": "jesse-compatible-sync.log"
+    },
+    {
+      "command": [
+        "uv",
+        "sync",
+        "--all-extras",
+        "--python",
+        "3.14"
+      ],
+      "label": "local-native-sync",
+      "exit_code": 0,
+      "seconds": 78.86,
+      "log": "jesse-local-native-sync.log"
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "pytest",
+        "tests/test_backtest.py",
+        "-x"
+      ],
+      "label": "backtest-diagnostic",
+      "exit_code": 1,
+      "seconds": 26.27,
+      "log": "jesse-backtest-diagnostic.log"
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "pytest",
+        "tests"
+      ],
+      "label": "tests-2",
+      "exit_code": 1,
+      "seconds": 277.76,
+      "log": "jesse-tests-2.log"
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "pytest",
+        "tests/test_mcp_live_history.py::test_shared_queries_and_hydration_leave_caller_transaction_intact"
+      ],
+      "label": "history-diagnostic",
+      "exit_code": 0,
+      "seconds": 18.53,
+      "log": "jesse-history-diagnostic.log"
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "pytest",
+        "tests/test_coordination.py",
+        "-rs"
+      ],
+      "label": "coordination-required",
+      "exit_code": 0,
+      "seconds": 11.55,
+      "log": "jesse-coordination-required.log"
+    },
+    {
+      "command": [
+        "env",
+        "PATH=/opt/homebrew/opt/rustup/bin:/opt/homebrew/bin:/usr/bin:/bin",
+        "JESSE_COORDINATION_REQUIRE_TESTS=1",
+        ".venv/bin/python",
+        "-m",
+        "pytest",
+        "tests/test_coordination.py",
+        "-rs"
+      ],
+      "label": "coordination-required-2",
+      "exit_code": 0,
+      "seconds": 26.43,
+      "log": "jesse-coordination-required-2.log"
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "pytest",
+        "tests"
+      ],
+      "label": "tests-3",
+      "exit_code": 0,
+      "seconds": 313.8,
+      "log": "jesse-tests-3.log"
+    },
+    {
+      "command": [
+        "uv",
+        "lock",
+        "--upgrade"
+      ],
+      "label": "final-lock",
+      "exit_code": 0,
+      "seconds": 0.52,
+      "log": "jesse-final-lock.log"
+    },
+    {
+      "command": [
+        "uv",
+        "sync",
+        "--all-extras",
+        "--frozen",
+        "--python",
+        "3.14.8"
+      ],
+      "label": "final-sync",
+      "exit_code": 0,
+      "seconds": 0.05,
+      "log": "jesse-final-sync.log"
+    },
+    {
+      "command": [
+        "uv",
+        "build",
+        "--python",
+        "3.14.8"
+      ],
+      "label": "final-build",
+      "exit_code": 0,
+      "seconds": 47.09,
+      "log": "jesse-final-build.log"
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "compileall",
+        "-q",
+        "src"
+      ],
+      "label": "final-compile",
+      "exit_code": 0,
+      "seconds": 0.9,
+      "log": "jesse-final-compile.log"
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "pytest",
+        "tests"
+      ],
+      "label": "tests-4",
+      "exit_code": 0,
+      "seconds": 287.59,
+      "log": "jesse-tests-4.log"
+    },
+    {
+      "command": [
+        "uv",
+        "lock",
+        "--upgrade"
+      ],
+      "label": "final-lock-2",
+      "exit_code": 0,
+      "seconds": 0.44,
+      "log": "jesse-final-lock-2.log"
+    },
+    {
+      "command": [
+        "uv",
+        "sync",
+        "--all-extras",
+        "--frozen",
+        "--python",
+        "3.14.8"
+      ],
+      "label": "final-sync-2",
+      "exit_code": 0,
+      "seconds": 49.24,
+      "log": "jesse-final-sync-2.log"
+    },
+    {
+      "command": [
+        "uv",
+        "build",
+        "--python",
+        "3.14.8"
+      ],
+      "label": "final-build-2",
+      "exit_code": 0,
+      "seconds": 21.71,
+      "log": "jesse-final-build-2.log"
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "compileall",
+        "-q",
+        "src"
+      ],
+      "label": "final-compile-2",
+      "exit_code": 0,
+      "seconds": 0.24,
+      "log": "jesse-final-compile-2.log"
+    }
+  ],
+  "started": "2026-10-12T00:14:01+0800",
+  "python": "3.14.8",
+  "head": "8629c894b3174f1c6c14a75cd88bfd05e8df9d69",
+  "branch": "feature/ayu_develop",
+  "runtime_inventory": {
+    "executable": "/Users/alex/workspaces/trading/jesse/.venv/bin/python",
+    "packages": {
+      "Mako": "1.4.3",
+      "MarkupSafe": "3.0.4",
+      "PyJWT": "2.15.1",
+      "PyYAML": "6.0.3",
+      "Pygments": "2.21.0",
+      "SQLAlchemy": "2.1.4",
+      "aiofiles": "25.1.0",
+      "alembic": "1.20.0",
+      "annotated-doc": "0.0.5",
+      "annotated-types": "0.8.0",
+      "anyio": "4.15.1",
+      "arrow": "1.4.0",
+      "attrs": "26.1.0",
+      "bitarray": "3.12.0",
+      "blinker": "1.9.0",
+      "certifi": "2026.7.22",
+      "cffi": "2.1.1",
+      "charset-normalizer": "3.5.2",
+      "ckzg": "2.1.8",
+      "click": "8.5.0",
+      "cloudpickle": "3.1.2",
+      "colorlog": "6.12.0",
+      "contourpy": "1.4.0",
+      "cryptography": "50.0.2",
+      "cycler": "0.12.1",
+      "cytoolz": "1.2.0",
+      "ecdsa": "0.19.2",
+      "eth-account": "0.14.0",
+      "eth-hash": "0.8.0",
+      "eth-keyfile": "0.10.0",
+      "eth-keys": "0.8.0",
+      "eth-rlp": "3.0.0",
+      "eth-typing": "6.0.0",
+      "eth-utils": "6.0.0",
+      "eth_abi": "6.0.0",
+      "fastapi": "0.143.0",
+      "filelock": "4.1.1",
+      "fnc": "0.5.3",
+      "fonttools": "4.66.1",
+      "formulaic": "1.2.2",
+      "h11": "0.16.0",
+      "hexbytes": "2.0.0",
+      "httpcore": "1.0.9",
+      "httpx": "0.28.1",
+      "httpx-sse": "0.4.3",
+      "idna": "3.20",
+      "iniconfig": "2.3.1",
+      "interface_meta": "2.0.1",
+      "jesse": "3.3.1",
+      "jesse-rust": "1.3.1",
+      "joblib": "1.6.0",
+      "jsonschema": "4.26.0",
+      "jsonschema-specifications": "2025.9.1",
+      "kiwisolver": "1.5.1",
+      "matplotlib": "3.11.2",
+      "mcp": "1.30.0",
+      "msgpack": "1.2.3",
+      "narwhals": "2.27.1",
+      "numpy": "2.5.4",
+      "opentelemetry-api": "1.45.1",
+      "optuna": "5.0.0",
+      "packaging": "26.3",
+      "pandas": "3.0.6",
+      "parsimonious": "0.10.0",
+      "patsy": "1.0.3",
+      "peewee": "4.5.3",
+      "pillow": "12.3.0",
+      "pluggy": "1.6.0",
+      "protobuf": "7.36.2",
+      "psycopg2-binary": "2.9.13",
+      "py-ecc": "8.0.0",
+      "pycparser": "3.11",
+      "pycryptodome": "3.24.0",
+      "pydantic": "2.14.0",
+      "pydantic-settings": "2.15.0",
+      "pydantic_core": "2.50.0",
+      "pydash": "8.1.0",
+      "pyparsing": "3.3.3",
+      "pytest": "9.1.1",
+      "python-dateutil": "2.9.0.post0",
+      "python-dotenv": "1.2.4",
+      "python-multipart": "0.0.32",
+      "ray": "2.59.0",
+      "referencing": "0.37.0",
+      "regex": "2026.9.29",
+      "requests": "2.34.2",
+      "rlp": "5.0.0",
+      "rpds-py": "2026.9.1",
+      "scikit-learn": "1.9.1",
+      "scipy": "1.18.1",
+      "simplejson": "4.2.0",
+      "six": "1.17.0",
+      "sse-starlette": "3.5.0",
+      "starkbank-ecdsa": "2.3.1",
+      "starlette": "1.7.0",
+      "statsmodels": "0.15.0",
+      "tabulate": "0.10.0",
+      "threadpoolctl": "3.7.0",
+      "timeloop": "1.0.2",
+      "toolz": "1.2.0",
+      "tqdm": "4.70.1",
+      "typing-inspection": "0.4.4",
+      "typing_extensions": "4.16.0",
+      "tzdata": "2026.5",
+      "urllib3": "2.8.0",
+      "uvicorn": "0.54.0",
+      "websocket-client": "1.9.2",
+      "websockets": "17.2",
+      "wrapt": "2.5.0",
+      "wsaccel": "0.6.7"
+    },
+    "python": "3.14.8 (main, Oct  9 2026, 15:11:09) [Clang 22.1.3 ]"
+  },
+  "validation_updated": "2026-10-12T01:32:45.614228+08:00",
+  "python_decision": "Python 3.15 was attempted: Numba/Tulipy dependency support prevented the full environment. Python 3.14.8 is selected. The local jesse-rust native source separately builds on Python 3.15.",
+  "outcome_notes": "Full existing tests pass with local ../jesse-rust. Rust coordinator coverage is included when cargo is on PATH; the separate existing coordinator suite also passes. MCP remains on the newest compatible 1.x API because 2.x changed existing HTTP/MCP behavior.",
+  "selected_test": {
+    "command": [
+      ".venv/bin/python",
+      "-m",
+      "pytest",
+      "tests"
+    ],
+    "label": "tests-4",
+    "exit_code": 0,
+    "seconds": 287.59,
+    "log": "jesse-tests-4.log"
+  },
+  "test_summary": "================= 1970 passed, 18 skipped in 275.31s (0:04:35) =================",
+  "status": "passed",
+  "final_checks": {
+    "lock": {
+      "command": [
+        "uv",
+        "lock",
+        "--upgrade"
+      ],
+      "label": "final-lock-2",
+      "exit_code": 0,
+      "seconds": 0.44,
+      "log": "jesse-final-lock-2.log"
+    },
+    "sync": {
+      "command": [
+        "uv",
+        "sync",
+        "--all-extras",
+        "--frozen",
+        "--python",
+        "3.14.8"
+      ],
+      "label": "final-sync-2",
+      "exit_code": 0,
+      "seconds": 49.24,
+      "log": "jesse-final-sync-2.log"
+    },
+    "build": {
+      "command": [
+        "uv",
+        "build",
+        "--python",
+        "3.14.8"
+      ],
+      "label": "final-build-2",
+      "exit_code": 0,
+      "seconds": 21.71,
+      "log": "jesse-final-build-2.log"
+    },
+    "compile": {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "compileall",
+        "-q",
+        "src"
+      ],
+      "label": "final-compile-2",
+      "exit_code": 0,
+      "seconds": 0.24,
+      "log": "jesse-final-compile-2.log"
+    }
+  },
+  "default_merged": true,
+  "upstream_default": "upstream/master"
+}

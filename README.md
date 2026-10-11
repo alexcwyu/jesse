@@ -192,3 +192,5 @@ You can see the project's **[roadmap here](https://docs.jesse.trade/docs/roadmap
 
 ## Disclaimer
 This software is for educational purposes only. USE THE SOFTWARE AT **YOUR OWN RISK**. THE AUTHORS AND ALL AFFILIATES ASSUME **NO RESPONSIBILITY FOR YOUR TRADING RESULTS**. **Do not risk money that you are afraid to lose**. There might be **bugs** in the code - this software DOES NOT come with **ANY warranty**.
+
+Development documentation: [architecture and workflows](docs/ayu-develop.md) ([HTML](docs/ayu-develop.html)), [uv development](docs/development.md), and [validation evidence](docs/validation.md).

@@ -1,4 +1,5 @@
 import sys
+from pathlib import Path
 from typing import Dict, List, Any
 from jesse.config import config
 import jesse.helpers as jh
@@ -95,7 +96,7 @@ class RouterClass:
                         strategies_dir = f'{sys.path[0]}/tests/strategies'
                     # main framework
                     else:
-                        strategies_dir = f'{sys.path[0]}/jesse/strategies'
+                        strategies_dir = Path(__file__).resolve().parent.parent / 'strategies'
                     exists = jh.file_exists(f"{strategies_dir}/{strategy_name}/__init__.py")
                 else:
                     exists = jh.file_exists(f'strategies/{strategy_name}/__init__.py')
