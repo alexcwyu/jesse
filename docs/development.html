@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Jesse -- Development Guide</title><style>
+:root{color-scheme:light dark;--bg:#f6f8fa;--paper:#fff;--fg:#182332;--muted:#526274;--line:#d9e0e7;--accent:#1769aa}
+@media(prefers-color-scheme:dark){:root{--bg:#111820;--paper:#192330;--fg:#e6edf3;--muted:#a0b3c5;--line:#344354;--accent:#71b7ee}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.7 system-ui,-apple-system,sans-serif}
+header{border-bottom:1px solid var(--line);padding:16px max(24px,calc((100vw - 1120px)/2));background:var(--paper);font-size:14px}
+main{max-width:1120px;margin:32px auto;padding:40px 48px;background:var(--paper);border:1px solid var(--line);border-radius:12px}
+h1,h2,h3,h4{line-height:1.3;scroll-margin-top:24px}h1{font-size:2.1rem}h2{margin-top:2.5em;border-bottom:1px solid var(--line);padding-bottom:.35em}h3{margin-top:1.8em}
+a{color:var(--accent);text-underline-offset:3px}code{font:14px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--bg);border-radius:4px;padding:2px 5px}pre{overflow:auto;border:1px solid var(--line);background:var(--bg);padding:16px;border-radius:7px}pre code{padding:0;background:none}
+table{border-collapse:collapse;width:100%;display:block;overflow-x:auto;font-size:14px}th,td{border:1px solid var(--line);padding:9px 12px;text-align:left}th{background:var(--bg)}blockquote{border-left:4px solid var(--accent);margin:16px 0;padding:4px 20px;color:var(--muted)}
+.diagram{overflow-x:auto;margin:24px 0;padding:20px;border:1px solid var(--line);border-radius:8px;background:#fff;color:#182332}.mermaid{border:0;background:none;text-align:center}.mermaid svg{height:auto;max-width:100%}details{font-size:13px;color:#526274}.headerlink{margin-left:.4em;font-size:.7em;text-decoration:none;color:var(--muted)}
+main{min-width:0;overflow-wrap:anywhere}table,pre{max-width:100%}.diagram svg{display:block}
+th,td{min-width:120px;overflow-wrap:normal}
+@media(max-width:740px){main{margin:0;padding:24px 18px;border:0;border-radius:0}h1{font-size:1.7rem}.diagram{padding:8px}}
+@media print{header,details,.headerlink{display:none}body,main{background:#fff;color:#000;border:0;margin:0;padding:0}a{color:#000}.diagram,pre{break-inside:avoid}}
+</style></head><body><header>Engineering documentation · <a href="development.md">Markdown source</a></header><main><h1 id="jesse-development-guide">Jesse -- Development Guide<a class="headerlink" href="#jesse-development-guide" title="Permanent link">&para;</a></h1>
+<h2 id="setting-up-the-development-environment">Setting Up the Development Environment<a class="headerlink" href="#setting-up-the-development-environment" title="Permanent link">&para;</a></h2>
+<h3 id="prerequisites">Prerequisites<a class="headerlink" href="#prerequisites" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Python 3.10+</li>
+<li>PostgreSQL (for candle storage and session tracking)</li>
+<li>Redis (for inter-process communication)</li>
+</ul>
+<h3 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h3>
+<pre><code class="language-bash"># Clone and install in development mode
+git clone &lt;repo-url&gt;
+cd jesse
+pip install -e .
+
+# Or with uv
+uv sync --active --all-groups --all-extras
+</code></pre>
+<h3 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h3>
+<p>Jesse reads environment variables from a <code>.env</code> file in the project root:</p>
+<pre><code class="language-env">APP_PORT=9000
+APP_HOST=0.0.0.0
+APP_PASSWORD=your-password
+
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_DB=jesse
+POSTGRES_USER=jesse
+POSTGRES_PASSWORD=jesse
+
+REDIS_HOST=localhost
+REDIS_PORT=6379
+</code></pre>
+<h2 id="running-tests">Running Tests<a class="headerlink" href="#running-tests" title="Permanent link">&para;</a></h2>
+<pre><code class="language-bash"># Run all tests
+pytest
+
+# Run specific test file
+pytest tests/test_backtest.py
+
+# Run by name pattern
+pytest -k test_order_submission
+
+# With coverage
+pytest --cov=jesse
+
+# Verbose output
+pytest -v tests/test_strategy.py
+</code></pre>
+<h3 id="test-structure">Test Structure<a class="headerlink" href="#test-structure" title="Permanent link">&para;</a></h3>
+<p>Tests are organized in <code>/tests/</code> and use test strategies from <code>src/jesse/strategies/Test*/</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Test File</th>
+<th>Coverage Area</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>test_backtest.py</code></td>
+<td>Backtesting engine</td>
+</tr>
+<tr>
+<td><code>test_strategy.py</code></td>
+<td>Strategy lifecycle</td>
+</tr>
+<tr>
+<td><code>test_broker.py</code></td>
+<td>Order placement</td>
+</tr>
+<tr>
+<td><code>test_indicators.py</code></td>
+<td>Technical indicators</td>
+</tr>
+<tr>
+<td><code>test_position.py</code></td>
+<td>Position management</td>
+</tr>
+<tr>
+<td><code>test_order.py</code></td>
+<td>Order model</td>
+</tr>
+<tr>
+<td><code>test_helpers.py</code></td>
+<td>Utility functions</td>
+</tr>
+<tr>
+<td><code>test_metrics.py</code></td>
+<td>Performance calculations</td>
+</tr>
+</tbody>
+</table>
+<p>There are 137+ test strategy implementations (<code>Test01</code> through <code>Test48</code> and named test strategies) that exercise specific framework behaviors.</p>
+<h3 id="testing-utilities">Testing Utilities<a class="headerlink" href="#testing-utilities" title="Permanent link">&para;</a></h3>
+<pre><code class="language-python">from jesse.testing_utils import get_btc_candles, set_up, single_route_backtest
+
+# Set up test environment
+set_up()
+
+# Run a single-route backtest for testing
+result = single_route_backtest('TestStrategyName', candles)
+</code></pre>
+<h2 id="creating-a-strategy">Creating a Strategy<a class="headerlink" href="#creating-a-strategy" title="Permanent link">&para;</a></h2>
+<h3 id="via-web-dashboard">Via Web Dashboard<a class="headerlink" href="#via-web-dashboard" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Navigate to <code>http://localhost:9000</code></li>
+<li>Use the Strategy panel to create a new strategy</li>
+<li>The built-in code editor provides autocompletion</li>
+</ol>
+<h3 id="manual-creation">Manual Creation<a class="headerlink" href="#manual-creation" title="Permanent link">&para;</a></h3>
+<p>Create a directory under your project's <code>strategies/</code> folder:</p>
+<pre><code>strategies/
+  MyStrategy/
+    __init__.py
+</code></pre>
+<h3 id="strategy-template">Strategy Template<a class="headerlink" href="#strategy-template" title="Permanent link">&para;</a></h3>
+<pre><code class="language-python">from jesse.strategies import Strategy
+import jesse.indicators as ta
+from jesse import utils
+
+class MyStrategy(Strategy):
+    # --- Required Methods ---
+
+    def should_long(self) -&gt; bool:
+        &quot;&quot;&quot;Return True when conditions favor a long entry.&quot;&quot;&quot;
+        return False
+
+    def should_short(self) -&gt; bool:
+        &quot;&quot;&quot;Return True when conditions favor a short entry.&quot;&quot;&quot;
+        return False
+
+    def go_long(self):
+        &quot;&quot;&quot;Define long entry orders. Called when should_long() returns True.&quot;&quot;&quot;
+        qty = utils.size_to_qty(self.balance * 0.05, self.price)
+        self.buy = qty, self.price
+        self.stop_loss = qty, self.price * 0.95
+        self.take_profit = qty, self.price * 1.10
+
+    def go_short(self):
+        &quot;&quot;&quot;Define short entry orders. Called when should_short() returns True.&quot;&quot;&quot;
+        pass
+
+    # --- Optional Lifecycle Hooks ---
+
+    def before(self):
+        &quot;&quot;&quot;Called before each candle is processed.&quot;&quot;&quot;
+        pass
+
+    def after(self):
+        &quot;&quot;&quot;Called after each candle is processed.&quot;&quot;&quot;
+        pass
+
+    def update_position(self):
+        &quot;&quot;&quot;Called on every candle when a position is open.
+        Use for trailing stops, dynamic TP/SL, position scaling.&quot;&quot;&quot;
+        pass
+
+    def on_open_position(self, order):
+        &quot;&quot;&quot;Triggered when a position is opened.&quot;&quot;&quot;
+        pass
+
+    def on_close_position(self, order):
+        &quot;&quot;&quot;Triggered when a position is closed.&quot;&quot;&quot;
+        pass
+
+    def on_increased_position(self, order):
+        &quot;&quot;&quot;Triggered when position size increases.&quot;&quot;&quot;
+        pass
+
+    def on_reduced_position(self, order):
+        &quot;&quot;&quot;Triggered when position size decreases.&quot;&quot;&quot;
+        pass
+
+    def on_cancel(self, order):
+        &quot;&quot;&quot;Triggered when an order is cancelled.&quot;&quot;&quot;
+        pass
+
+    def before_terminate(self):
+        &quot;&quot;&quot;Called before the strategy terminates (end of backtest).&quot;&quot;&quot;
+        pass
+
+    def terminate(self):
+        &quot;&quot;&quot;Called when the strategy terminates.&quot;&quot;&quot;
+        pass
+
+    def filters(self) -&gt; list:
+        &quot;&quot;&quot;Return a list of filter functions. Each must return True for a trade to proceed.&quot;&quot;&quot;
+        return []
+
+    # --- Optimization ---
+
+    def hyperparameters(self):
+        &quot;&quot;&quot;Define searchable hyperparameters for optimization.&quot;&quot;&quot;
+        return [
+            {'name': 'ema_fast', 'type': int, 'min': 5, 'max': 50, 'default': 20},
+            {'name': 'ema_slow', 'type': int, 'min': 30, 'max': 200, 'default': 50},
+            {'name': 'risk_pct', 'type': float, 'min': 0.01, 'max': 0.10, 'default': 0.05},
+        ]
+</code></pre>
+<h2 id="order-placement-patterns">Order Placement Patterns<a class="headerlink" href="#order-placement-patterns" title="Permanent link">&para;</a></h2>
+<h3 id="single-orders">Single Orders<a class="headerlink" href="#single-orders" title="Permanent link">&para;</a></h3>
+<pre><code class="language-python"># Entry orders
+self.buy = qty, price       # Limit buy
+self.sell = qty, price       # Limit sell
+
+# Exit orders
+self.stop_loss = qty, price
+self.take_profit = qty, price
+</code></pre>
+<h3 id="multiple-orders-scaling-inout">Multiple Orders (Scaling In/Out)<a class="headerlink" href="#multiple-orders-scaling-inout" title="Permanent link">&para;</a></h3>
+<pre><code class="language-python">def go_long(self):
+    qty = utils.size_to_qty(self.balance * 0.05, self.price)
+    # Scale into position at multiple prices
+    self.buy = [
+        (qty * 0.5, self.price),
+        (qty * 0.5, self.price * 0.98),
+    ]
+    self.stop_loss = qty, self.price * 0.95
+    self.take_profit = [
+        (qty * 0.5, self.price * 1.05),
+        (qty * 0.5, self.price * 1.10),
+    ]
+</code></pre>
+<h3 id="dynamic-position-management">Dynamic Position Management<a class="headerlink" href="#dynamic-position-management" title="Permanent link">&para;</a></h3>
+<pre><code class="language-python">def update_position(self):
+    # Trailing stop
+    if self.position.pnl_percentage &gt; 5:
+        new_sl = self.position.entry_price * 1.02
+        self.stop_loss = self.position.qty, new_sl
+
+    # Scale out at profit targets
+    if self.position.pnl_percentage &gt; 10:
+        self.liquidate(0.5)  # Close 50%
+</code></pre>
+<h2 id="using-indicators">Using Indicators<a class="headerlink" href="#using-indicators" title="Permanent link">&para;</a></h2>
+<pre><code class="language-python">import jesse.indicators as ta
+
+class MyStrategy(Strategy):
+    @property
+    @cached
+    def ema_fast(self):
+        return ta.ema(self.candles, period=self.hp.get('ema_fast', 20))
+
+    @property
+    @cached
+    def rsi(self):
+        return ta.rsi(self.candles, period=14)
+
+    def should_long(self):
+        return (
+            self.ema_fast &gt; ta.ema(self.candles, 50) and
+            self.rsi &lt; 70
+        )
+</code></pre>
+<p>Available indicator categories:
+- <strong>Trend</strong>: EMA, SMA, DEMA, TEMA, WMA, HMA, ALMA, SuperTrend
+- <strong>Momentum</strong>: RSI, MACD, Stochastic, CCI, ADX, MFI
+- <strong>Volatility</strong>: Bollinger Bands, ATR, Standard Deviation
+- <strong>Volume</strong>: OBV, NVI, PVI, VWMA
+- <strong>Oscillators</strong>: Aroon, Williams %R, Ultimate Oscillator</p>
+<h2 id="accessing-cross-route-data">Accessing Cross-Route Data<a class="headerlink" href="#accessing-cross-route-data" title="Permanent link">&para;</a></h2>
+<pre><code class="language-python">from jesse.store import store
+
+class MyStrategy(Strategy):
+    def should_long(self):
+        # Read candles from another symbol
+        btc_candles = store.candles.get_candles('Binance', 'BTC-USDT', '1h')
+        btc_trend = ta.ema(btc_candles, 50)
+
+        # Only go long if BTC is also trending up
+        return self.ema_fast &gt; self.ema_slow and btc_trend[-1] &gt; btc_trend[-2]
+</code></pre>
+<h2 id="performance-metrics">Performance Metrics<a class="headerlink" href="#performance-metrics" title="Permanent link">&para;</a></h2>
+<p>The framework computes these metrics automatically after backtests:</p>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Net Profit %</td>
+<td>Total return as percentage</td>
+</tr>
+<tr>
+<td>Sharpe Ratio</td>
+<td>Risk-adjusted return (annualized)</td>
+</tr>
+<tr>
+<td>Calmar Ratio</td>
+<td>Return / Max Drawdown</td>
+</tr>
+<tr>
+<td>Sortino Ratio</td>
+<td>Downside risk-adjusted return</td>
+</tr>
+<tr>
+<td>Omega Ratio</td>
+<td>Probability-weighted gains vs losses</td>
+</tr>
+<tr>
+<td>Max Drawdown</td>
+<td>Largest peak-to-trough decline</td>
+</tr>
+<tr>
+<td>Win Rate</td>
+<td>Percentage of winning trades</td>
+</tr>
+<tr>
+<td>Profit Factor</td>
+<td>Gross profit / Gross loss</td>
+</tr>
+<tr>
+<td>Total Trades</td>
+<td>Number of completed trades</td>
+</tr>
+<tr>
+<td>Annual Return</td>
+<td>Annualized rate of return</td>
+</tr>
+</tbody>
+</table>
+<h2 id="adding-a-new-exchange-driver">Adding a New Exchange Driver<a class="headerlink" href="#adding-a-new-exchange-driver" title="Permanent link">&para;</a></h2>
+<p>To add candle import support for a new exchange:</p>
+<ol>
+<li>Create a directory under <code>src/jesse/modes/import_candles_mode/drivers/NewExchange/</code></li>
+<li>Implement the driver interface:</li>
+</ol>
+<pre><code class="language-python">from jesse.modes.import_candles_mode.drivers.interface import CandleExchangeInterface
+
+class NewExchangeSpot(CandleExchangeInterface):
+    def get_starting_time(self, symbol: str) -&gt; int:
+        &quot;&quot;&quot;Return the earliest available timestamp for this symbol.&quot;&quot;&quot;
+        pass
+
+    def fetch(self, symbol: str, start_timestamp: int, timeframe: str = '1m') -&gt; list:
+        &quot;&quot;&quot;Fetch candles and return as list of [timestamp, open, close, high, low, volume].&quot;&quot;&quot;
+        pass
+</code></pre>
+<ol start="3">
+<li>Register the driver in the exchange configuration.</li>
+</ol>
+<h2 id="common-pitfalls">Common Pitfalls<a class="headerlink" href="#common-pitfalls" title="Permanent link">&para;</a></h2>
+<ol>
+<li>
+<p><strong>Lookback bias</strong>: Do not use the current candle's close in <code>should_long()</code>/<code>should_short()</code>. Use <code>self.candles[:-1]</code> to exclude the forming candle.</p>
+</li>
+<li>
+<p><strong>Order format</strong>: Always use tuple notation <code>self.buy = qty, price</code>. Separate assignments will not work.</p>
+</li>
+<li>
+<p><strong>Position sizing</strong>: Use <code>utils.size_to_qty()</code> or <code>utils.risk_to_qty()</code> instead of manual calculations to handle precision correctly.</p>
+</li>
+<li>
+<p><strong>Indicator warmup</strong>: Ensure enough warmup candles are configured (default 240). A 200-period EMA needs at least 200 candles before producing valid output.</p>
+</li>
+<li>
+<p><strong>Mutable state</strong>: Do not store mutable state as instance variables that persist across trades. Use <code>self.vars</code> dict, which is shared across the store, or reset variables in <code>on_open_position()</code>.</p>
+</li>
+<li>
+<p><strong>Multiple routes</strong>: Be aware that all routes share the global store. Name your <code>store.vars</code> keys carefully to avoid collisions.</p>
+</li>
+</ol>
+<h2 id="code-style">Code Style<a class="headerlink" href="#code-style" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Follow PEP 8</li>
+<li>Use type hints where applicable</li>
+<li>Prefer NumPy vectorized operations over Python loops</li>
+<li>Cache expensive computations with <code>@cached</code> decorator</li>
+<li>Keep strategy methods focused and single-purpose</li>
+<li>Use conventional commit messages</li>
+</ul>
+<h2 id="configuration-reference">Configuration Reference<a class="headerlink" href="#configuration-reference" title="Permanent link">&para;</a></h2>
+<p>Jesse's configuration is defined in <code>src/jesse/config.py</code> and environment variables from <code>.env</code>. The runtime configuration is a nested dictionary modified based on the active mode (backtest, live, optimize).</p>
+<h3 id="environment-variables-env">Environment Variables (<code>.env</code>)<a class="headerlink" href="#environment-variables-env" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>APP_PORT</code></td>
+<td>int</td>
+<td><code>9000</code></td>
+<td>Port for the FastAPI web dashboard</td>
+</tr>
+<tr>
+<td><code>APP_HOST</code></td>
+<td>str</td>
+<td><code>0.0.0.0</code></td>
+<td>Host address for the web server</td>
+</tr>
+<tr>
+<td><code>APP_PASSWORD</code></td>
+<td>str</td>
+<td><em>(required)</em></td>
+<td>Password for web dashboard authentication</td>
+</tr>
+<tr>
+<td><code>POSTGRES_HOST</code></td>
+<td>str</td>
+<td><code>localhost</code></td>
+<td>PostgreSQL server hostname</td>
+</tr>
+<tr>
+<td><code>POSTGRES_PORT</code></td>
+<td>int</td>
+<td><code>5432</code></td>
+<td>PostgreSQL server port</td>
+</tr>
+<tr>
+<td><code>POSTGRES_DB</code></td>
+<td>str</td>
+<td><code>jesse</code></td>
+<td>PostgreSQL database name</td>
+</tr>
+<tr>
+<td><code>POSTGRES_USER</code></td>
+<td>str</td>
+<td><code>jesse</code></td>
+<td>PostgreSQL username</td>
+</tr>
+<tr>
+<td><code>POSTGRES_PASSWORD</code></td>
+<td>str</td>
+<td><code>jesse</code></td>
+<td>PostgreSQL password</td>
+</tr>
+<tr>
+<td><code>REDIS_HOST</code></td>
+<td>str</td>
+<td><code>localhost</code></td>
+<td>Redis server hostname</td>
+</tr>
+<tr>
+<td><code>REDIS_PORT</code></td>
+<td>int</td>
+<td><code>6379</code></td>
+<td>Redis server port</td>
+</tr>
+</tbody>
+</table>
+<h3 id="exchange-configuration-configenvexchanges">Exchange Configuration (<code>config['env']['exchanges']</code>)<a class="headerlink" href="#exchange-configuration-configenvexchanges" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>fee</code></td>
+<td>float</td>
+<td><code>0</code> (Sandbox)</td>
+<td>Trading fee as a decimal (e.g., <code>0.001</code> for 0.1%)</td>
+</tr>
+<tr>
+<td><code>type</code></td>
+<td>str</td>
+<td><code>"futures"</code></td>
+<td>Exchange type: <code>"futures"</code> or <code>"spot"</code></td>
+</tr>
+<tr>
+<td><code>futures_leverage_mode</code></td>
+<td>str</td>
+<td><code>"cross"</code></td>
+<td>Leverage mode: <code>"cross"</code> or <code>"isolated"</code></td>
+</tr>
+<tr>
+<td><code>futures_leverage</code></td>
+<td>int</td>
+<td><code>1</code></td>
+<td>Leverage multiplier (1, 2, 10, 50, etc.)</td>
+</tr>
+<tr>
+<td><code>balance</code></td>
+<td>float</td>
+<td><code>10000</code></td>
+<td>Starting balance in quote currency</td>
+</tr>
+</tbody>
+</table>
+<h3 id="optimization-configuration-configenvoptimization">Optimization Configuration (<code>config['env']['optimization']</code>)<a class="headerlink" href="#optimization-configuration-configenvoptimization" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>objective_function</code></td>
+<td>str</td>
+<td><code>"sharpe"</code></td>
+<td>Fitness metric: <code>sharpe</code>, <code>calmar</code>, <code>sortino</code>, <code>omega</code>, <code>serenity</code>, <code>smart sharpe</code>, <code>smart sortino</code></td>
+</tr>
+<tr>
+<td><code>trials</code></td>
+<td>int</td>
+<td><code>200</code></td>
+<td>Number of Optuna trials per hyperparameter</td>
+</tr>
+<tr>
+<td><code>best_candidates_count</code></td>
+<td>int</td>
+<td><code>20</code></td>
+<td>Number of top results to display</td>
+</tr>
+</tbody>
+</table>
+<h3 id="data-configuration-configenvdata">Data Configuration (<code>config['env']['data']</code>)<a class="headerlink" href="#data-configuration-configenvdata" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>warmup_candles_num</code></td>
+<td>int</td>
+<td><code>240</code></td>
+<td>Number of warmup candles loaded before session start</td>
+</tr>
+<tr>
+<td><code>generate_candles_from_1m</code></td>
+<td>bool</td>
+<td><code>False</code></td>
+<td>Generate higher timeframe candles from 1-minute data</td>
+</tr>
+<tr>
+<td><code>persistency</code></td>
+<td>bool</td>
+<td><code>True</code></td>
+<td>Persist state to database during live trading</td>
+</tr>
+</tbody>
+</table>
+<h3 id="logging-configuration-configenvlogging">Logging Configuration (<code>config['env']['logging']</code>)<a class="headerlink" href="#logging-configuration-configenvlogging" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>strategy_execution</code></td>
+<td>bool</td>
+<td><code>True</code></td>
+<td>Log strategy execution events</td>
+</tr>
+<tr>
+<td><code>order_submission</code></td>
+<td>bool</td>
+<td><code>True</code></td>
+<td>Log order submission events</td>
+</tr>
+<tr>
+<td><code>order_cancellation</code></td>
+<td>bool</td>
+<td><code>True</code></td>
+<td>Log order cancellation events</td>
+</tr>
+<tr>
+<td><code>order_execution</code></td>
+<td>bool</td>
+<td><code>True</code></td>
+<td>Log order execution events</td>
+</tr>
+<tr>
+<td><code>position_opened</code></td>
+<td>bool</td>
+<td><code>True</code></td>
+<td>Log position open events</td>
+</tr>
+<tr>
+<td><code>position_increased</code></td>
+<td>bool</td>
+<td><code>True</code></td>
+<td>Log position increase events</td>
+</tr>
+<tr>
+<td><code>position_reduced</code></td>
+<td>bool</td>
+<td><code>True</code></td>
+<td>Log position reduction events</td>
+</tr>
+<tr>
+<td><code>position_closed</code></td>
+<td>bool</td>
+<td><code>True</code></td>
+<td>Log position close events</td>
+</tr>
+<tr>
+<td><code>shorter_period_candles</code></td>
+<td>bool</td>
+<td><code>False</code></td>
+<td>Log shorter period candle generation</td>
+</tr>
+<tr>
+<td><code>trading_candles</code></td>
+<td>bool</td>
+<td><code>True</code></td>
+<td>Log trading candle events</td>
+</tr>
+<tr>
+<td><code>balance_update</code></td>
+<td>bool</td>
+<td><code>True</code></td>
+<td>Log balance update events</td>
+</tr>
+</tbody>
+</table>
+<h3 id="caching-configuration-configenvcaching">Caching Configuration (<code>config['env']['caching']</code>)<a class="headerlink" href="#caching-configuration-configenvcaching" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>driver</code></td>
+<td>str</td>
+<td><code>"pickle"</code></td>
+<td>Cache driver: <code>"pickle"</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
+<h3 id="1-psycopg2operationalerror-could-not-connect-to-server">1. <code>psycopg2.OperationalError: could not connect to server</code><a class="headerlink" href="#1-psycopg2operationalerror-could-not-connect-to-server" title="Permanent link">&para;</a></h3>
+<p><strong>Cause</strong>: PostgreSQL is not running or connection parameters are wrong.
+<strong>Solution</strong>: Verify PostgreSQL is running (<code>pg_isready</code>), check <code>.env</code> values for <code>POSTGRES_HOST</code>, <code>POSTGRES_PORT</code>, <code>POSTGRES_USER</code>, <code>POSTGRES_PASSWORD</code>. Create the database if needed: <code>createdb jesse</code>.</p>
+<h3 id="2-redisexceptionsconnectionerror-error-connecting-to-localhost6379">2. <code>redis.exceptions.ConnectionError: Error connecting to localhost:6379</code><a class="headerlink" href="#2-redisexceptionsconnectionerror-error-connecting-to-localhost6379" title="Permanent link">&para;</a></h3>
+<p><strong>Cause</strong>: Redis server is not running.
+<strong>Solution</strong>: Start Redis with <code>redis-server</code> or <code>systemctl start redis</code>. Verify with <code>redis-cli ping</code>.</p>
+<h3 id="3-valueerror-strategy-class-not-found">3. <code>ValueError: Strategy class not found</code><a class="headerlink" href="#3-valueerror-strategy-class-not-found" title="Permanent link">&para;</a></h3>
+<p><strong>Cause</strong>: Strategy directory structure is wrong or <code>__init__.py</code> does not export the class.
+<strong>Solution</strong>: Ensure your strategy is at <code>strategies/MyStrategy/__init__.py</code> and the class name matches the directory name exactly (case-sensitive).</p>
+<h3 id="4-indexerror-index-out-of-bounds-in-indicators">4. <code>IndexError: index out of bounds</code> in indicators<a class="headerlink" href="#4-indexerror-index-out-of-bounds-in-indicators" title="Permanent link">&para;</a></h3>
+<p><strong>Cause</strong>: Insufficient warmup candles for the indicator period used.
+<strong>Solution</strong>: Increase <code>warmup_candles_num</code> in the backtest configuration. A 200-period EMA needs at least 200 warmup candles (default is 240).</p>
+<h3 id="5-typeerror-nonetype-object-is-not-iterable-in-go_long">5. <code>TypeError: 'NoneType' object is not iterable</code> in <code>go_long()</code><a class="headerlink" href="#5-typeerror-nonetype-object-is-not-iterable-in-go_long" title="Permanent link">&para;</a></h3>
+<p><strong>Cause</strong>: Forgetting to use tuple notation for order assignment.
+<strong>Solution</strong>: Use <code>self.buy = qty, price</code> (tuple), not separate <code>self.buy_qty = qty; self.buy_price = price</code>.</p>
+<h3 id="6-backtest-shows-zero-trades">6. Backtest shows zero trades<a class="headerlink" href="#6-backtest-shows-zero-trades" title="Permanent link">&para;</a></h3>
+<p><strong>Cause</strong>: <code>should_long()</code> / <code>should_short()</code> never returns <code>True</code>, or filters block all entries.
+<strong>Solution</strong>: Check indicator logic, ensure candles have enough data, temporarily remove filters to isolate the issue. Enable debug logging.</p>
+<h3 id="7-rayexceptionsraytaskerror-during-optimization">7. <code>ray.exceptions.RayTaskError</code> during optimization<a class="headerlink" href="#7-rayexceptionsraytaskerror-during-optimization" title="Permanent link">&para;</a></h3>
+<p><strong>Cause</strong>: Ray workers fail due to memory or serialization issues.
+<strong>Solution</strong>: Reduce the number of concurrent trials, ensure strategy code is serializable (no lambda functions or open file handles in strategy class).</p>
+<h3 id="8-web-dashboard-returns-401-unauthorized">8. Web dashboard returns 401 Unauthorized<a class="headerlink" href="#8-web-dashboard-returns-401-unauthorized" title="Permanent link">&para;</a></h3>
+<p><strong>Cause</strong>: <code>APP_PASSWORD</code> in <code>.env</code> does not match what you entered in the browser.
+<strong>Solution</strong>: Check <code>.env</code> file, restart the server after changes.</p>
+<h3 id="9-modulenotfounderror-no-module-named-jesse_live">9. <code>ModuleNotFoundError: No module named 'jesse_live'</code><a class="headerlink" href="#9-modulenotfounderror-no-module-named-jesse_live" title="Permanent link">&para;</a></h3>
+<p><strong>Cause</strong>: The optional live trading plugin is not installed.
+<strong>Solution</strong>: Run <code>jesse install-live</code> to install the live trading extension. This is only required for live/paper trading, not backtesting.</p>
+<h3 id="10-candle-import-hangs-or-times-out">10. Candle import hangs or times out<a class="headerlink" href="#10-candle-import-hangs-or-times-out" title="Permanent link">&para;</a></h3>
+<p><strong>Cause</strong>: Exchange API rate limits or network issues.
+<strong>Solution</strong>: Use smaller date ranges, check network connectivity, verify the exchange and symbol are supported (see <code>jesse/info.py</code> for the full list).</p>
+<h2 id="security-considerations">Security Considerations<a class="headerlink" href="#security-considerations" title="Permanent link">&para;</a></h2>
+<h3 id="api-key-management">API Key Management<a class="headerlink" href="#api-key-management" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Never hardcode API keys</strong> in strategy files or configuration. Use environment variables or the <code>.env</code> file.</li>
+<li>The <code>.env</code> file should be excluded from version control (add to <code>.gitignore</code>).</li>
+<li>Jesse stores exchange credentials for live trading; ensure the machine running Jesse has restricted access.</li>
+</ul>
+<h3 id="credential-storage">Credential Storage<a class="headerlink" href="#credential-storage" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Database credentials (<code>POSTGRES_USER</code>, <code>POSTGRES_PASSWORD</code>) are stored in plaintext in <code>.env</code>. On production servers, use environment variables set by your deployment system instead.</li>
+<li>The <code>APP_PASSWORD</code> for the web dashboard is transmitted in HTTP; use HTTPS (reverse proxy with TLS) for remote access.</li>
+<li>Redis connections are unauthenticated by default. Configure Redis <code>requirepass</code> if the server is network-accessible.</li>
+</ul>
+<h3 id="network-security">Network Security<a class="headerlink" href="#network-security" title="Permanent link">&para;</a></h3>
+<ul>
+<li>The web dashboard binds to <code>0.0.0.0</code> by default, exposing it on all interfaces. Restrict to <code>127.0.0.1</code> in <code>.env</code> if only local access is needed.</li>
+<li>Use a firewall to restrict access to ports 9000 (dashboard), 5432 (PostgreSQL), and 6379 (Redis).</li>
+<li>For live trading, ensure WebSocket connections to exchanges use TLS (handled by exchange libraries).</li>
+</ul>
+<h3 id="safe-practices">Safe Practices<a class="headerlink" href="#safe-practices" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Run backtests and live trading under a dedicated OS user with minimal privileges.</li>
+<li>Use read-only API keys for data import operations; only enable trading permissions for live trading keys.</li>
+<li>Review strategy code for unintended side effects (file system access, network calls) before deploying to production.</li>
+<li>Enable authentication on PostgreSQL and Redis in production environments.</li>
+<li>Regularly rotate API keys and database passwords.</li>
+</ul>
+<hr />
+<h2 id="see-also">See Also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="README.md">README</a> — Project overview and quick start</li>
+<li><a href="architecture.md">Architecture</a> — System design and components</li>
+<li><a href="workflow.md">Workflow</a> — Event flows and processing pipelines</li>
+<li><a href="state-management.md">State Management</a> — State lifecycle and data models</li>
+</ul>
+<h2 id="uv-maintenance-workflow-2026-10-12">uv maintenance workflow (2026-10-12)<a class="headerlink" href="#uv-maintenance-workflow-2026-10-12" title="Permanent link">&para;</a></h2>
+<p>Selected complete environment: Python 3.14.8; build backend <code>hatchling.build</code>. The workspace uses uv 0.13.0. Python 3.15 was attempted before any fallback; the actual failure and selected runtime are recorded in <a href="validation.md">validation</a>.</p>
+<pre><code class="language-sh">export UV_PYTHON_PREFERENCE=only-managed
+uv python install 3.14.8
+uv lock --upgrade
+uv sync --all-extras --python 3.14.8
+uv build --python 3.14.8
+uv run --frozen --all-extras python -m compileall -q src/jesse
+uv run --frozen --all-extras python -m pytest tests
+</code></pre>
+<p>Clone the sibling jesse-rust checkout before uv sync. Its Rust/native build requires a recent cargo/rustc toolchain. The existing pytest.ini remains authoritative. Coordination integration tests use the existing coordinator fixture and can skip when its local offline build prerequisites are unavailable.</p>
+<p>Keep source resources inside their package and preserve the repository's existing src layout. Rebuild after source/native/asset changes. Use the locked environment for final verification. Commands above are the standard workflow, not a promise that every existing suite currently passes; consult validation for exact outcomes and unresolved compatibility issues.</p></main>
+</body></html>
