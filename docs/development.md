@@ -1,5 +1,11 @@
 # Jesse -- Development Guide
 
+<!-- current-documentation-provenance -->
+Documentation reviewed: 2026-10-13 / Git source base: `37c568de9cf316a9f6cca0e471335c419237f8f0` / [Current architecture and feature guide](ayu-develop.md).
+Historical execution commands/results below retain their original dates and scope; this metadata update is not a new application test run.
+<!-- /current-documentation-provenance -->
+
+
 ## Setting Up the Development Environment
 
 ### Prerequisites
